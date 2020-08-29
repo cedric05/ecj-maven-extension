@@ -29,51 +29,58 @@ public class EcjNatvieExtension extends AbstractMavenLifecycleParticipant {
 
 	@Override
 	public void afterProjectsRead(MavenSession session) throws MavenExecutionException {
-		String flag = System.getProperty("ecj-native", "f").toLowerCase();
-		if (flag.startsWith("t") || flag.startsWith("1"))
-			try {
+		String profile = System.getProperty("ecj-native", "");
+		try {
+			Xpp3Dom aConfig = getConfig(profile);
+			if (aConfig != null) {
 				for (MavenProject currentProject : session.getAllProjects()) {
-					System.out.println(currentProject.getArtifact());
 					Plugin plugin = currentProject.getPlugin("org.apache.maven.plugins:maven-compiler-plugin");
 					if (plugin != null && plugin.getExecutions() != null)
 						for (PluginExecution execution : plugin.getExecutions()) {
 							if (execution.getId().equals("default-compile")) {
-								execution.setConfiguration(getConfig());
-								List<Dependency> dependencies = currentProject.getDependencies();
-								dependencies.addAll(getJava8Deps());
+								Xpp3Dom dependencyConfig = aConfig.getChild("dependencies");
+								List<Dependency> dependencies = getDependencies(dependencyConfig);
+								execution.setConfiguration(aConfig.getChild("configuration"));
+								currentProject.getDependencies().addAll(dependencies);
 							}
 						}
 				}
-			} catch (Exception ex) {
-				throw new MavenExecutionException("compiler plugin modification failed, could be compile-config.xml not available", ex);
 			}
+		} catch (Exception e) {
+			throw new MavenExecutionException("compiler plugin modification failed, could be compile-config.xml not available", e);
+		}
 	}
 
-	private static List<Dependency> getJava8Deps() {
-		List<Dependency> dep = new ArrayList<Dependency>();
-		dep.add(getADepFromFilename("rt.jar"));
-		dep.add(getADepFromFilename("jce.jar"));
-		dep.add(getADepFromFilename("jsse.jar"));
-		dep.add(getADepFromFilename("management-agent.jar"));
-		dep.add(getADepFromFilename("resources.jar"));
-		return dep;
+	private static List<Dependency> getDependencies(Xpp3Dom dom) {
+		ArrayList<Dependency> list = new ArrayList<Dependency>();
+		Xpp3Dom[] children = dom.getChildren();
+		for (Xpp3Dom child : children) {
+			Xpp3Dom version = child.getChild("version");
+			Xpp3Dom artifactId = child.getChild("artifactId");
+			Xpp3Dom groupId = child.getChild("groupId");
+			Xpp3Dom scope = child.getChild("scope");
+			Xpp3Dom systemPath = child.getChild("systemPath");
+			Dependency dependency = new Dependency();
+			dependency.setGroupId(groupId.getValue());
+			dependency.setArtifactId(version.getValue());
+			dependency.setVersion(artifactId.getValue());
+			dependency.setScope(scope.getValue());
+			dependency.setSystemPath(systemPath.getValue());
+			list.add(dependency);
+		}
+		return list;
 	}
 
-	private static Dependency getADepFromFilename(String filename) {
-		String home = System.getProperty("java.home");
-		Dependency dep = new Dependency();
-		dep.setGroupId(filename);
-		dep.setArtifactId(filename);
-		dep.setVersion(filename);
-		dep.setScope("system");
-		dep.setSystemPath(home + "/lib/" + filename);
-		return dep;
-	}
-
-	public static Xpp3Dom getConfig() throws XmlPullParserException, IOException {
+	public static Xpp3Dom getConfig(String name) throws XmlPullParserException, IOException {
 		String homedir = System.getProperty("user.home");
 		FileInputStream inputStream = new FileInputStream(homedir + "/.m2/compile-config.xml");
-		Xpp3Dom build = Xpp3DomBuilder.build(inputStream, "utf-8");
-		return build;
+		Xpp3Dom config = Xpp3DomBuilder.build(inputStream, "utf-8");
+		for (Xpp3Dom child : config.getChildren()) {
+			String attribute = child.getAttribute("id");
+			if (attribute != null && attribute.equals(name)) {
+				return child;
+			}
+		}
+		return null;
 	}
 }

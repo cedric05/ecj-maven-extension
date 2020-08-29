@@ -1,0 +1,50 @@
+<xs:schema attributeFormDefault="unqualified" elementFormDefault="qualified" xmlns:xs="http://www.w3.org/2001/XMLSchema">
+    <xs:element name="profiles">
+        <xs:complexType>
+            <xs:sequence>
+                <xs:element name="profile">
+                    <xs:complexType>
+                        <xs:sequence>
+                            <xs:element name="configuration">
+                                <xs:complexType>
+                                    <xs:sequence>
+                                        <xs:element type="xs:string" name="fork"/>
+                                        <xs:element type="xs:string" name="executable"/>
+                                        <xs:element type="xs:string" name="failOnError"/>
+                                        <xs:element name="compilerArgs">
+                                            <xs:complexType>
+                                                <xs:sequence>
+                                                    <xs:element type="xs:string" name="arg"/>
+                                                </xs:sequence>
+                                            </xs:complexType>
+                                        </xs:element>
+                                        <xs:element type="xs:float" name="target"/>
+                                        <xs:element type="xs:float" name="source"/>
+                                    </xs:sequence>
+                                </xs:complexType>
+                            </xs:element>
+                            <xs:element name="dependencies">
+                                <xs:complexType>
+                                    <xs:sequence>
+                                        <xs:element name="dependency" maxOccurs="unbounded" minOccurs="0">
+                                            <xs:complexType>
+                                                <xs:sequence>
+                                                    <xs:element type="xs:float" name="version"/>
+                                                    <xs:element type="xs:string" name="artifactId"/>
+                                                    <xs:element type="xs:string" name="groupId"/>
+                                                    <xs:element type="xs:string" name="scope"/>
+                                                    <xs:element type="xs:string" name="systemPath"/>
+                                                </xs:sequence>
+                                            </xs:complexType>
+                                        </xs:element>
+                                    </xs:sequence>
+                                </xs:complexType>
+                            </xs:element>
+                        </xs:sequence>
+                        <xs:attribute type="xs:string" name="id"/>
+                    </xs:complexType>
+                </xs:element>
+            </xs:sequence>
+        </xs:complexType>
+    </xs:element>
+</xs:schema>
